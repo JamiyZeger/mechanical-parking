@@ -1,0 +1,872 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>机械车位大揭秘 · 三层立体车库怎么工作？</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body {
+    font-family: -apple-system, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    background: linear-gradient(180deg, #eaf5ff 0%, #dcefff 45%, #f4f9fc 100%);
+    color: #22384c;
+    min-height: 100vh;
+    padding-bottom: 30px;
+  }
+
+  header { text-align: center; padding: 14px 16px 4px; }
+  h1 {
+    font-size: clamp(20px, 2.6vw, 27px);
+    letter-spacing: 1px;
+    color: #17456e;
+    text-shadow: 0 2px 0 #fff;
+  }
+  .sub {
+    margin-top: 6px; font-size: clamp(12px, 1.35vw, 14px);
+    color: #43627e; line-height: 1.7; max-width: 900px; margin-left: auto; margin-right: auto;
+  }
+
+  .controls {
+    display: flex; flex-wrap: wrap; gap: 10px;
+    justify-content: center; align-items: center;
+    margin: 10px auto 4px; padding: 0 12px;
+  }
+  .controls .label { font-size: 15px; font-weight: 700; color: #2c4f70; }
+  .btn {
+    border: none; border-radius: 999px; padding: 8px 15px;
+    font-size: 14px; font-weight: 600; cursor: pointer;
+    background: #fff; color: #2c4f70;
+    box-shadow: 0 4px 12px rgba(30, 80, 140, .14);
+    transition: transform .18s ease, background .18s ease, color .18s ease;
+  }
+  .btn:hover { transform: translateY(-2px); }
+  .btn.active { background: #2f7bea; color: #fff; }
+  .btn.green { background: #2fb86b; color: #fff; }
+  .btn.purple { background: #7c5cf0; color: #fff; }
+  .btn.orange { background: #f5a623; color: #fff; }
+
+  .legend {
+    display: flex; flex-wrap: wrap; gap: 10px;
+    justify-content: center; max-width: 1180px;
+    margin: 8px auto 12px; padding: 0 12px;
+  }
+  .card {
+    background: #fff; border-radius: 14px; padding: 8px 12px;
+    font-size: 12px; line-height: 1.6; color: #33566f;
+    box-shadow: 0 5px 16px rgba(30, 80, 140, .10);
+    border-left: 6px solid #999; max-width: 280px;
+  }
+  /* 只有卡片开头的标题 b 是块级；正文里的加粗保持行内，避免"上。"被挤到下一行 */
+  .card > b:first-child { display: block; font-size: 13px; margin-bottom: 2px; }
+  .card b { color: #1d4a72; }
+  .c1 { border-left-color: #57b866; }
+  .c2 { border-left-color: #3f97e8; }
+  .c3 { border-left-color: #f5a623; }
+  .c4 { border-left-color: #9fb2bf; }
+
+  .scene-wrap {
+    width: min(1280px, 96vw); margin: 0 auto;
+    border-radius: 18px; overflow: hidden; position: relative;
+    box-shadow: 0 16px 44px rgba(20, 60, 120, .20);
+    background: #dff0ff;
+  }
+  .scene {
+    position: relative; overflow: hidden;
+    background: linear-gradient(180deg, #d8edff 0%, #e8f5ff 52%, #eef4ee 100%);
+    transform-origin: top left;
+  }
+
+  .caption {
+    width: min(1280px, 96vw); margin: 12px auto 0;
+    background: #fff; border-radius: 14px;
+    padding: 11px 18px; font-size: clamp(13px, 1.5vw, 15.5px);
+    line-height: 1.7; color: #1f4567; font-weight: 600;
+    box-shadow: 0 8px 22px rgba(30, 80, 140, .12);
+    border: 2px solid #d7e9fb; min-height: 46px;
+  }
+  .toast {
+    position: fixed; left: 50%; top: 18px; transform: translate(-50%, -24px);
+    background: #ff7043; color: #fff; font-size: 15px; font-weight: 700;
+    padding: 11px 22px; border-radius: 999px;
+    box-shadow: 0 10px 26px rgba(200, 60, 20, .35);
+    opacity: 0; pointer-events: none; transition: .35s ease; z-index: 99;
+  }
+  .toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+  .foot {
+    max-width: 1180px; margin: 10px auto 0; padding: 0 16px;
+    font-size: 11.5px; color: #6b8299; line-height: 1.7; text-align: center;
+  }
+
+  /* ---------- 场景内部元素 ---------- */
+  .steel {
+    position: absolute;
+    background: linear-gradient(90deg, #8d9aa6, #c3ced7 45%, #9aa7b2);
+    border-radius: 6px;
+    box-shadow: 0 2px 5px rgba(20, 40, 60, .18);
+    z-index: 1;
+  }
+  .beam {
+    position: absolute;
+    background: linear-gradient(180deg, #b6c2cc, #8b98a4 60%, #7d8a96);
+    border-radius: 8px;
+    box-shadow: 0 4px 10px rgba(20, 40, 60, .22);
+    z-index: 2;
+  }
+  .beam.mid {
+    background: linear-gradient(180deg, #c2ccd5, #94a1ad 60%, #828f9b);
+    z-index: 1;
+    box-shadow: 0 3px 7px rgba(20, 40, 60, .18);
+  }
+  .slab { position: absolute; background: linear-gradient(180deg, #cfd8de, #b8c3cb); z-index: 1; }
+  .curb { position: absolute; background: #b3bec6; z-index: 1; }
+  .road {
+    position: absolute; background: #59636e; z-index: 1;
+    border-top: 4px solid #414a54;
+  }
+  .road .dash {
+    position: absolute; left: 0; right: 0; height: 5px; top: 28px;
+    background: repeating-linear-gradient(90deg, #eef2f5 0 34px, rgba(0,0,0,0) 34px 68px);
+    opacity: .8;
+  }
+  .rail {
+    position: absolute; height: 4px; border-radius: 2px;
+    background: linear-gradient(180deg, #6f7b86, #4f5a64); z-index: 1;
+  }
+  .label-box {
+    position: absolute; text-align: right; z-index: 3;
+    font-size: 13px; color: #2c4f70; line-height: 1.35;
+  }
+  .label-box b { font-size: 15px; display: block; }
+  .label-box span { font-size: 11.5px; color: #5b7285; }
+  .colnum {
+    position: absolute; text-align: center; font-size: 13px; font-weight: 800;
+    color: #4d6b85; z-index: 3;
+  }
+  .gapwrap {
+    position: absolute; inset: 0; z-index: 2; pointer-events: none;
+  }
+  .gapslot {
+    position: absolute; border: 2.5px dashed #9fb2bf; border-radius: 12px;
+    background: rgba(255, 255, 255, .34); z-index: 2;
+    display: flex; align-items: center; justify-content: center;
+    color: #7d94a3; font-size: 13px; font-weight: 800; letter-spacing: 2px;
+  }
+
+  .deck { position: absolute; left: 0; top: 0; width: 128px; height: 20px; z-index: 3; cursor: pointer; }
+  .deck-inner {
+    position: absolute; inset: 0; border-radius: 8px;
+  }
+  .surface {
+    position: absolute; inset: 0; border-radius: 8px;
+    box-shadow: 0 6px 11px rgba(20, 45, 75, .28);
+  }
+  .d1 .surface { background: linear-gradient(180deg, #6ec97c, #46a457 55%, #3b8c4b); }
+  .d2 .surface { background: linear-gradient(180deg, #5cb2f5, #2f86d8 55%, #2672bc); }
+  .d3 .surface { background: linear-gradient(180deg, #ffc65c, #f5a623 55%, #dd8f12); }
+  .lip {
+    position: absolute; left: 8px; right: 8px; top: -4px; height: 5px;
+    border-radius: 3px; background: rgba(255, 255, 255, .5);
+  }
+  .hit {
+    position: absolute; left: 0; top: -58px; width: 128px; height: 82px;
+    border-radius: 12px; border: 2px dashed rgba(80, 140, 210, 0);
+    transition: border-color .18s ease, background .18s ease;
+  }
+  .deck:hover .hit { border-color: rgba(47, 123, 234, .75); background: rgba(120, 185, 255, .16); }
+  .tip {
+    position: absolute; left: 50%; top: 26px; transform: translateX(-50%);
+    background: #2f7bea; color: #fff; font-size: 12px; font-weight: 700;
+    padding: 5px 11px; border-radius: 999px; white-space: nowrap;
+    opacity: 0; transition: opacity .18s ease; pointer-events: none;
+  }
+  .deck:hover .tip { opacity: 1; }
+  .deck.occupied { cursor: pointer; }
+  .deck.occupied .tip { background: #ff7043; }
+
+  /* 车板停在非本层（比如三层车板赖在一楼）时的状态标记 */
+  .deck.away .surface::after {
+    content: '💤 留在一楼·未复位';
+    position: absolute; right: -12px; top: 24px;
+    background: #7c5cf0; color: #fff;
+    font-size: 10px; font-weight: 700; letter-spacing: .5px;
+    padding: 2px 8px; border-radius: 999px; white-space: nowrap;
+    box-shadow: 0 2px 6px rgba(70, 40, 150, .35);
+  }
+
+  .chain {
+    position: absolute; top: 72px; width: 11px; border-radius: 6px; z-index: 2;
+    background:
+      repeating-linear-gradient(180deg,
+        #97a2ac 0 5px, #59636d 5px 7px,
+        #7f8a95 7px 12px, #4a545e 12px 14px);
+    box-shadow: inset 0 0 3px rgba(255,255,255,.35), 0 1px 4px rgba(0,0,0,.28);
+    border: 1px solid #454e57;
+  }
+  .sprocket {
+    position: absolute; top: 64px; width: 16px; height: 16px; border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, #c2ccd4, #5d6771 70%);
+    border: 2px solid #4c555e; z-index: 4;
+  }
+
+  .car { position: absolute; left: 0; top: 0; width: 116px; height: 56px; z-index: 7; cursor: pointer; }
+
+  @keyframes shakeX {
+    0%, 100% { transform: translateX(0); }
+    20% { transform: translateX(-6px); }
+    40% { transform: translateX(6px); }
+    60% { transform: translateX(-4px); }
+    80% { transform: translateX(4px); }
+  }
+  .deck-inner.shake { animation: shakeX .42s ease; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🏗️ 机械车位大揭秘 —— <span id="titleLayers">三层</span>立体车库怎么工作？</h1>
+  <div class="sub" id="subText">
+    这是真实生活中的「升降横移式立体车库」：第一层只能<b>左右横移</b>，第二层能<b>横移 + 升降</b>，第三层只能<b>上下升降</b>（都是铁链拉着的）。
+    下面留着一个<b>空位</b>，就像华容道的空格，车位靠它互相让路！
+  </div>
+</header>
+
+<div class="controls">
+  <span class="label">车库层数：</span>
+  <button class="btn layer-btn active" data-layers="3">3 层</button>
+  <button class="btn layer-btn" data-layers="2">2 层</button>
+  <span class="label">第一层车位数：</span>
+  <button class="btn n-btn" data-n="2">2 个</button>
+  <button class="btn n-btn active" data-n="3">3 个</button>
+  <button class="btn n-btn" data-n="4">4 个</button>
+  <button class="btn n-btn" data-n="5">5 个</button>
+  <button class="btn n-btn" data-n="6">6 个</button>
+  <button class="btn green" id="randomBtn">🎲 随机停一辆</button>
+  <button class="btn purple" id="randomOutBtn">🚗 随机开走一辆</button>
+  <button class="btn orange" id="resetBtn">🔄 全部清空</button>
+</div>
+
+<div class="legend">
+  <div class="card c1"><b>🟩 第一层（地面层）↔</b>只能左右横移，车可以直接开进开出，最方便！</div>
+  <div class="card c2" id="cardMid"><b>🟦 第二层（中间层）↔ ↕</b>既能左右横移、又能上下升降；铁链吊在<b>第二层横梁</b>上。</div>
+  <div class="card c3" id="cardTop"><b>🟧 第三层（最上层）↕</b>只能上下升降；铁链吊在<b>顶层横梁</b>上。它比下面多 1 个车位哦。</div>
+  <div class="card c4"><b>⬜ 空位（交换位）</b>每层留一个空位互相让路；车板<b>移走后不挪回去</b>（横移、升降都不复位），下次挡路才让开。</div>
+</div>
+
+<div class="scene-wrap" id="sceneWrap">
+  <div class="scene" id="scene"></div>
+</div>
+
+<div class="caption" id="caption">👆 点<b>空车位</b>停车，点<b>小汽车</b>把它开走！</div>
+
+<div class="foot" id="footText">
+  运动规则参考真实「升降横移类机械式停车设备」：顶层载车板只升降，中间层升降 + 横移，底层只横移；
+  除顶层外每层预留一个空位做交换位，存取车时目标车位到空位之间的载车板依次横移一个车位，让出升降通道。
+  这里的车板很"懒"：<b>横移、升降之后都不复位</b> —— 停好车就留在原地，下次停车挡路时才被迫让开。
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(function () {
+  'use strict';
+
+  /* ================= 布局常量（场景坐标系） ================= */
+  var COL_W = 150, DECK_W = 128, DECK_H = 20;
+  var CAR_W = 116, CAR_H = 56, CAR_PAD_X = 6;
+  var MARGIN_L = 105, MARGIN_R = 55;
+  // 层高压缩：每层净空只比小汽车高一点（和真实车库一致），整页可一屏看完
+  var DECK_Y = { 1: 336, 2: 248, 3: 160 };   // 层间距 88px = 车高 56 + 净空
+  var BEAM_Y = 72, BEAM_TOP = 46;
+  var MID_BEAM_TOP = 180, MID_BEAM_BOT = 200;  // 第二层横梁：二层车板的铁链吊在它下面
+  var SCENE_H = 440;
+  var SLAB_Y = 356, CURB_Y = 368, ROAD_Y = 374, DRIVE_WHEELS = 414;
+  var SLIDE = 300, LIFT = 1250, LIFT_LONG = 1550;
+
+  var COLORS = ['#e8574a', '#3f97e8', '#f5a623', '#8b5cf6', '#22b8a6', '#ec4899', '#f97316', '#10b981', '#0ea5e9'];
+
+  var scene = document.getElementById('scene');
+  var sceneWrap = document.getElementById('sceneWrap');
+  var captionEl = document.getElementById('caption');
+  var toastEl = document.getElementById('toast');
+
+  var slots = { 1: [], 2: [], 3: [] };   // 按「当前所在层」记录占用情况
+  var state = { N: 3, cols: 4, layers: 3, busy: false, colorIdx: 0, purpose: '停车' };
+  var toastTimer = null;
+
+  function sleep(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
+  function colX(c) { return MARGIN_L + c * COL_W; }
+  function carPos(x, y) {
+    return 'translate(' + (x + CAR_PAD_X) + 'px,' + (y - CAR_H + 2) + 'px)';
+  }
+
+  function setCaption(text) { captionEl.innerHTML = text; }
+  function showToast(text) {
+    toastEl.textContent = text;
+    toastEl.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { toastEl.classList.remove('show'); }, 2200);
+  }
+
+  /* ================= 结构绘制 ================= */
+  function drawStructure(W) {
+    var i, x;
+    var is3 = (state.layers === 3);
+
+    // 顶层横梁（只有三层车库才有；两层车库唯一的横梁画在上面一层车板之上）
+    if (is3) {
+      var beam = document.createElement('div');
+      beam.className = 'beam';
+      beam.style.left = (MARGIN_L - 45) + 'px';
+      beam.style.top = BEAM_TOP + 'px';
+      beam.style.width = (state.cols * COL_W + 90) + 'px';
+      beam.style.height = (BEAM_Y - BEAM_TOP) + 'px';
+      scene.appendChild(beam);
+    }
+
+    // 第二层横梁（三层车库）/ 顶层横梁（两层车库）：上面一层车板的铁链从它下面垂下
+    var beam2 = document.createElement('div');
+    beam2.className = is3 ? 'beam mid' : 'beam';
+    beam2.style.left = (MARGIN_L - 45) + 'px';
+    beam2.style.top = MID_BEAM_TOP + 'px';
+    beam2.style.width = (state.cols * COL_W + 90) + 'px';
+    beam2.style.height = (MID_BEAM_BOT - MID_BEAM_TOP) + 'px';
+    scene.appendChild(beam2);
+
+    // 立柱
+    var postTop = is3 ? BEAM_Y : MID_BEAM_TOP;
+    for (i = 0; i <= state.cols; i++) {
+      var post = document.createElement('div');
+      post.className = 'steel';
+      x = colX(i) - 15;
+      post.style.left = x + 'px';
+      post.style.top = postTop + 'px';
+      post.style.width = '12px';
+      post.style.height = (SLAB_Y - postTop) + 'px';
+      scene.appendChild(post);
+    }
+
+    // 地面基础 + 导轨（第一层横移用）
+    var slab = document.createElement('div');
+    slab.className = 'slab';
+    slab.style.left = (MARGIN_L - 45) + 'px';
+    slab.style.top = SLAB_Y + 'px';
+    slab.style.width = (state.cols * COL_W + 90) + 'px';
+    slab.style.height = '16px';
+    scene.appendChild(slab);
+
+    for (i = 0; i < 2; i++) {
+      var rail = document.createElement('div');
+      rail.className = 'rail';
+      rail.style.left = (MARGIN_L - 25) + 'px';
+      rail.style.top = (SLAB_Y - 4 + i * 6) + 'px';
+      rail.style.width = (state.cols * COL_W + 50) + 'px';
+      scene.appendChild(rail);
+    }
+
+    // 路沿 + 马路（车子从前面开进来）
+    var curb = document.createElement('div');
+    curb.className = 'curb';
+    curb.style.left = (MARGIN_L - 45) + 'px';
+    curb.style.top = CURB_Y + 'px';
+    curb.style.width = (state.cols * COL_W + 90) + 'px';
+    curb.style.height = '8px';
+    scene.appendChild(curb);
+
+    var road = document.createElement('div');
+    road.className = 'road';
+    road.style.left = '0px';
+    road.style.top = ROAD_Y + 'px';
+    road.style.width = W + 'px';
+    road.style.height = (SCENE_H - ROAD_Y) + 'px';
+    road.innerHTML = '<div class="dash"></div>';
+    scene.appendChild(road);
+
+    // 左侧楼层说明（随层数变化）
+    var labels = is3 ? [
+      { layer: 3, name: '第三层', ability: '↕ 升降·铁链吊顶层横梁' },
+      { layer: 2, name: '第二层', ability: '↔ 横移 ↕ 升降·铁链吊二层横梁' },
+      { layer: 1, name: '第一层', ability: '↔ 只能横移' }
+    ] : [
+      { layer: 2, name: '第二层', ability: '↕ 升降·铁链吊顶层横梁' },
+      { layer: 1, name: '第一层', ability: '↔ 只能横移' }
+    ];
+    for (i = 0; i < labels.length; i++) {
+      var lb = document.createElement('div');
+      lb.className = 'label-box';
+      lb.style.left = '4px';
+      lb.style.width = (MARGIN_L - 26) + 'px';
+      lb.style.top = (DECK_Y[labels[i].layer] - 44) + 'px';
+      lb.innerHTML = '<b>' + labels[i].name + '</b><span>' + labels[i].ability + '</span>';
+      scene.appendChild(lb);
+    }
+
+    // 列号（空位会在各列之间移动，所以每列都编号；放在最上面一根横梁之上）
+    for (i = 0; i < state.cols; i++) {
+      var cn = document.createElement('div');
+      cn.className = 'colnum';
+      cn.style.left = (colX(i) - 11) + 'px';
+      cn.style.top = (is3 ? 14 : MID_BEAM_TOP - 28) + 'px';
+      cn.style.width = (DECK_W + 22) + 'px';
+      cn.textContent = String(i + 1) + ' 号位';
+      scene.appendChild(cn);
+    }
+  }
+
+  var gapWrap = null;
+
+  function drawGapSlots() {
+    gapWrap = document.createElement('div');
+    gapWrap.className = 'gapwrap';
+    scene.appendChild(gapWrap);
+    syncGapVisuals();
+  }
+
+  // 空位（交换位）会跟着车位跑到新位置 —— 横移、升降都不复位
+  // 哪个格子空着，就在哪里画虚线"空位"框（降到一楼的车板把它的本层空位留在上面）
+  function syncGapVisuals() {
+    if (!gapWrap) return;
+    gapWrap.innerHTML = '';
+    [1, 2, 3].forEach(function (level) {
+      if (!DECK_Y[level]) return;
+      slots[level].forEach(function (p, c) {
+        if (p) return;
+        var g = document.createElement('div');
+        g.className = 'gapslot';
+        g.style.left = colX(c) + 'px';
+        g.style.top = (DECK_Y[level] - CAR_H) + 'px';
+        g.style.width = DECK_W + 'px';
+        g.style.height = (CAR_H + DECK_H) + 'px';
+        g.textContent = '空位';
+        gapWrap.appendChild(g);
+      });
+    });
+  }
+
+  /* ================= 载车板（车位） ================= */
+  function makePlatform(layer, col) {
+    var deck = document.createElement('div');
+    // 颜色按「角色」：地面层绿、中间层蓝、顶层橙（两层车库的第二层就是顶层）
+    deck.className = 'deck ' + (layer === 1 ? 'd1' : (layer === state.layers ? 'd3' : 'd2'));
+    var inner = document.createElement('div');
+    inner.className = 'deck-inner';
+    inner.innerHTML =
+      '<div class="surface"></div><div class="lip"></div>' +
+      '<div class="hit"></div><div class="tip">👆 点我停车</div>';
+    deck.appendChild(inner);
+    scene.appendChild(deck);
+
+    var p = {
+      layer: layer, homeCol: col, curCol: col, curY: DECK_Y[layer],
+      curLevel: layer, canSlide: layer < state.layers,
+      car: null, deck: deck, inner: inner, chains: []
+    };
+
+    // 上面各层：铁链拉着（第一层在地面导轨上，不需要铁链）
+    // 三层车库：二层铁链吊「第二层横梁」、三层铁链吊「顶层横梁」
+    // 两层车库：唯一的横梁就是顶层横梁（画在第二层车板上方），第二层铁链吊它
+    p.chainTop = (layer === 2) ? MID_BEAM_BOT : BEAM_Y;
+    if (layer >= 2) {
+      [24, 96].forEach(function (off) {
+        var ch = document.createElement('div');
+        ch.className = 'chain';
+        ch.style.top = p.chainTop + 'px';
+        scene.appendChild(ch);
+        var sp = document.createElement('div');
+        sp.className = 'sprocket';
+        sp.style.top = (p.chainTop - 8) + 'px';
+        scene.appendChild(sp);
+        p.chains.push({ el: ch, sprocket: sp, off: off });
+      });
+    }
+
+    deck.addEventListener('click', function () { park(p); });
+    applyTransform(p, 0);
+    return p;
+  }
+
+  function applyTransform(p, dur, ease) {
+    ease = ease || 'cubic-bezier(.4,.05,.25,1)';
+    var x = colX(p.curCol), y = p.curY, t = dur + 'ms ' + ease, i;
+    p.deck.style.transition = 'transform ' + t;
+    p.deck.style.transform = 'translate(' + x + 'px,' + y + 'px)';
+    for (i = 0; i < p.chains.length; i++) {
+      var c = p.chains[i];
+      c.el.style.transition = 'transform ' + t + ', height ' + t;
+      c.el.style.transform = 'translateX(' + (x + c.off) + 'px)';
+      c.el.style.height = Math.max(0, y - p.chainTop) + 'px';
+      if (c.sprocket) {
+        c.sprocket.style.transition = 'transform ' + t;
+        c.sprocket.style.transform = 'translateX(' + (x + c.off - 2.5) + 'px)';
+      }
+    }
+    if (p.car) {
+      p.car.el.style.transition = 'transform ' + t;
+      p.car.el.style.transform = carPos(x, y);
+    }
+  }
+
+  function levelOf(y) {
+    return (y === DECK_Y[1]) ? 1 : (y === DECK_Y[2]) ? 2 : 3;
+  }
+
+  async function moveY(p, y, dur) {
+    var newLevel = levelOf(y);
+    if (newLevel !== p.curLevel) {
+      slots[p.curLevel][p.curCol] = null;
+      slots[newLevel][p.curCol] = p;
+      p.curLevel = newLevel;
+    }
+    p.curY = y;
+    p.deck.classList.toggle('away', newLevel !== p.layer);
+    applyTransform(p, dur, 'cubic-bezier(.45,.05,.35,1)');
+    syncGapVisuals();
+    await sleep(dur);
+  }
+
+  async function slideStep(p, toCol, dur) {
+    slots[p.curLevel][p.curCol] = null;
+    slots[p.curLevel][toCol] = p;
+    p.curCol = toCol;
+    applyTransform(p, dur || SLIDE);
+    syncGapVisuals();
+    await sleep(dur || SLIDE);
+  }
+
+  // 横移让路：目标位到空位之间的载车板依次向空位方向横移一格
+  async function vacateSlot(level, col) {
+    var arr = slots[level], i, p;
+    var gap = arr.indexOf(null);
+    if (gap === col) return;
+    if (gap > col) {
+      for (i = gap - 1; i >= col; i--) {
+        p = arr[i];
+        await slideStep(p, i + 1);
+      }
+    } else {
+      for (i = gap + 1; i <= col; i++) {
+        p = arr[i];
+        await slideStep(p, i - 1);
+      }
+    }
+  }
+
+  /* ---- 懒动求解器：横移、升降都不复位，挡路时才被迫让开 ---- */
+  var LEVEL_NAME = { 1: '第一层', 2: '第二层', 3: '第三层' };
+
+  // 把停在非本层的车板吊回本层（"它不得不移开"）
+  async function ensureHome(p) {
+    if (p.curY === DECK_Y[p.layer]) return;
+    setCaption('⬆️ 上次留在下面的<b>' + LEVEL_NAME[p.layer] + '车板</b>挡路啦 —— 铁链把它' +
+      (p.car ? '和小汽车一起' : '') + '吊回' + LEVEL_NAME[p.layer] + '，给这次' + state.purpose + '让路！');
+    await clearSlot(p.layer, p.curCol);
+    await moveY(p, DECK_Y[p.layer], LIFT);
+  }
+
+  // 让某层"清场"：先吊走停错楼层的车板（它们占着空位，横移就没法让路了）
+  async function tidyLevel(level) {
+    var arr = slots[level], list = [], i;
+    for (i = 0; i < arr.length; i++) {
+      if (arr[i] && arr[i].layer !== level) list.push(arr[i]);
+    }
+    for (i = 0; i < list.length; i++) await ensureHome(list[i]);
+  }
+
+  // 让 (level, col) 这个位置空出来：能横移的排队让路，只能升降的吊回本层
+  async function clearSlot(level, col) {
+    await tidyLevel(level);
+    var p = slots[level][col];
+    if (!p) return;
+    if (p.canSlide) await vacateSlot(level, col);
+    else await ensureHome(p);
+  }
+
+  /* ================= 小汽车 ================= */
+  function carSVG(c) {
+    return '<svg viewBox="0 0 116 56" width="116" height="56" xmlns="http://www.w3.org/2000/svg">' +
+      '<ellipse cx="58" cy="51" rx="50" ry="4.5" fill="rgba(20,40,70,.14)"/>' +
+      '<path d="M7 38c0-9 4-12 10-14l12-11c3-3 6-4 10-4h29c6 0 10 2 13 6l8 9c9 2 14 6 14 13v5c0 2-2 4-4 4H11c-2 0-4-2-4-4z" fill="' + c + '"/>' +
+      '<path d="M34 15c1-2 3-3 5-3h13v12H26z" fill="#cfeaff"/>' +
+      '<path d="M56 12h17c3 0 6 1 8 4l5 6H56z" fill="#cfeaff"/>' +
+      '<rect x="4" y="30" width="7" height="7" rx="3" fill="#ff9d9d"/>' +
+      '<rect x="104" y="30" width="9" height="7" rx="3" fill="#ffe9a8"/>' +
+      '<rect x="40" y="31" width="34" height="3" rx="1.5" fill="rgba(255,255,255,.35)"/>' +
+      '<circle cx="31" cy="45" r="11" fill="#2c3138"/><circle cx="31" cy="45" r="4.6" fill="#9aa5b1"/>' +
+      '<circle cx="85" cy="45" r="11" fill="#2c3138"/><circle cx="85" cy="45" r="4.6" fill="#9aa5b1"/>' +
+      '</svg>';
+  }
+
+  function makeCar() {
+    var el = document.createElement('div');
+    el.className = 'car';
+    el.innerHTML = carSVG(COLORS[state.colorIdx % COLORS.length]);
+    state.colorIdx++;
+    // 先放到场景外的马路上待命，避免出现时闪在左上角
+    el.style.transition = 'none';
+    el.style.transform = 'translate(-220px,' + (DRIVE_WHEELS - CAR_H) + 'px)';
+    scene.appendChild(el);
+    return { el: el };
+  }
+
+  async function driveIn(car, targetX) {
+    var startY = DRIVE_WHEELS - CAR_H;
+    car.el.style.transition = 'none';
+    car.el.style.transform = 'translate(-220px,' + startY + 'px)';
+    void car.el.offsetWidth;
+    var dist = targetX + CAR_PAD_X + 220;
+    var dur = Math.round(Math.max(650, dist * 0.62));
+    car.el.style.transition = 'transform ' + dur + 'ms linear';
+    car.el.style.transform = 'translate(' + (targetX + CAR_PAD_X) + 'px,' + startY + 'px)';
+    await sleep(dur);
+  }
+
+  async function board(car, p) {
+    var x = colX(p.curCol);
+    car.el.style.transition = 'transform 480ms cubic-bezier(.3,.75,.35,1)';
+    car.el.style.transform = carPos(x, p.curY);
+    await sleep(480);
+    p.car = car;
+    // 点击小汽车 → 开走（取车）
+    car.el.title = '点我，把车开走';
+    car.el.addEventListener('click', function () { driveOut(p); });
+  }
+
+  async function wiggle(p) {
+    var x = colX(p.curCol), y = p.curY;
+    var steps = [14, -14, 10, -10, 0], i;
+    for (i = 0; i < steps.length; i++) {
+      p.deck.style.transition = 'transform 130ms ease';
+      p.deck.style.transform = 'translate(' + (x + steps[i]) + 'px,' + y + 'px)';
+      await sleep(130);
+    }
+    applyTransform(p, 120);
+    await sleep(120);
+  }
+
+  function shake(p) {
+    p.inner.classList.remove('shake');
+    void p.inner.offsetWidth;
+    p.inner.classList.add('shake');
+    setTimeout(function () { p.inner.classList.remove('shake'); }, 460);
+  }
+
+  /* ================= 停车流程（横移、升降都不复位） ================= */
+  async function parkL1(p, car) {
+    if (p.layer === 1) {
+      setCaption('🚗 一辆小汽车开过来啦～ 第一层车位的本领是【左右横移】，先摇一摇给大家看！');
+      await wiggle(p);
+      setCaption('第一层车位就在地面，随时可以停 —— 车直接开进来！');
+    } else {
+      setCaption('🚗 这块车板正好停在地面（上次降下来就没回去），小汽车直接开进来！');
+    }
+    await driveIn(car, colX(p.curCol));
+    await board(car, p);
+    setCaption('✅ 停好啦！它就<b>停在这里不挪走</b>，下次停车它挡路时才会让开。');
+  }
+
+  async function parkL2(p, car) {
+    var col = p.curCol;
+    setCaption('① 第二层车板要降下来 —— 先看看下面挡不挡路，第一层车位<b>横移让路</b>！');
+    await clearSlot(1, col);
+    setCaption('② <b>第二层横梁</b>上垂下的铁链，拉着车板慢慢降到地面！');
+    await moveY(p, DECK_Y[1], LIFT);
+    setCaption('③ 通道打开了！小汽车开上车板 🚗');
+    await driveIn(car, colX(col));
+    await board(car, p);
+    setCaption('✅ 停好啦！车板就<b>留在一楼</b>（升降不复位）。下次停车它挡路时，才会让开。');
+  }
+
+  // 顶层停车：只能上下升降（三层车库的第三层 / 两层车库的第二层）
+  async function parkTop(p, car) {
+    var col = p.curCol, is3 = (state.layers === 3);
+    var name = LEVEL_NAME[p.layer];
+    setCaption('① ' + name + '<b>只能上下升降</b>！下面' + (is3 ? '两层' : '一层') + '先<b>横移让路</b>，打开一条升降通道。');
+    await clearSlot(1, col);
+    if (is3) await clearSlot(2, col);
+    setCaption('② 通道打开啦！<b>顶层横梁</b>垂下的铁链拉着' + name + '车板，穿过通道降到地面～');
+    await moveY(p, DECK_Y[1], is3 ? LIFT_LONG : LIFT);
+    setCaption('③ 小汽车开上车板 🚗');
+    await driveIn(car, colX(col));
+    await board(car, p);
+    setCaption('✅ 停好啦！' + name + '车板就<b>留在一楼</b>（升降不复位）—— 下次它挡路时，铁链才会把它吊回' + name + '！');
+  }
+
+  async function park(p) {
+    if (state.busy) return;
+    if (p.car) {
+      await driveOut(p);   // 点击已停的车 → 开走
+      return;
+    }
+    state.busy = true;
+    state.purpose = '停车';
+    try {
+      var car = makeCar();
+      if (p.curLevel === 1) await parkL1(p, car);
+      else if (p.canSlide) await parkL2(p, car);   // 中间层：横移 + 升降
+      else await parkTop(p, car);                  // 顶层：只升降
+    } finally {
+      state.busy = false;
+    }
+  }
+
+  /* ================= 取车流程（点小汽车 / 随机开走） ================= */
+  async function driveOut(p) {
+    if (state.busy || !p.car) return;
+    state.busy = true;
+    state.purpose = '取车';
+    try {
+      var car = p.car, col = p.curCol, x = colX(col), roadY = DRIVE_WHEELS - CAR_H;
+      if (p.curLevel === 1) {
+        setCaption('🚗 车主来取车啦！车就在地面，小汽车直接开走～');
+      } else {
+        setCaption('🚗 车主来取车啦！车板还在' + LEVEL_NAME[p.curLevel] + '，下面先<b>横移让路</b>，打开一条下降通道！');
+        // 从本层降到一楼，沿途各层都要清出通道（自下而上清）
+        for (var lv = 1; lv < p.layer; lv++) await clearSlot(lv, col);
+        setCaption('<b>' + (p.layer === state.layers ? '顶层横梁' : '第二层横梁') + '</b>垂下的铁链，拉着载着小汽车的车板降到地面！');
+        await moveY(p, DECK_Y[1], (p.layer === 3) ? LIFT_LONG : LIFT);
+      }
+      // 小汽车从车板开下来，沿马路开出画面
+      car.el.style.transition = 'transform 480ms cubic-bezier(.3,.75,.35,1)';
+      car.el.style.transform = 'translate(' + (x + CAR_PAD_X) + 'px,' + roadY + 'px)';
+      await sleep(480);
+      setCaption('🚗 小汽车开走啦！车板很"懒"，<b>留在原地不复位</b>，下次挡路时才会让开。');
+      var exitX = (scene.offsetWidth || 1) + 240;   // 从右边开出画面
+      var dist = exitX - (x + CAR_PAD_X);
+      var dur = Math.round(Math.max(650, dist * 0.62));
+      car.el.style.transition = 'transform ' + dur + 'ms linear';
+      car.el.style.transform = 'translate(' + exitX + 'px,' + roadY + 'px)';
+      await sleep(dur);
+      if (car.el.parentNode) car.el.parentNode.removeChild(car.el);
+      p.car = null;
+    } finally {
+      state.busy = false;
+    }
+  }
+
+  /* ================= 场景构建 ================= */
+  // 标题、副标题、图例、脚注随「2 层 / 3 层」切换
+  function updateTexts() {
+    var is3 = (state.layers === 3);
+    document.getElementById('titleLayers').textContent = is3 ? '三层' : '二层';
+    document.getElementById('subText').innerHTML = is3
+      ? '这是真实生活中的「升降横移式立体车库」：第一层只能<b>左右横移</b>，第二层能<b>横移 + 升降</b>，第三层只能<b>上下升降</b>（都是铁链拉着的）。下面留着一个<b>空位</b>，就像华容道的空格，车位靠它互相让路！'
+      : '这是真实生活中的「升降横移式立体车库」：第一层只能<b>左右横移</b>，第二层只能<b>上下升降</b>（铁链拉着的）。下面留着一个<b>空位</b>，就像华容道的空格，车位靠它互相让路！';
+    document.getElementById('cardMid').style.display = is3 ? '' : 'none';
+    document.getElementById('cardTop').innerHTML = is3
+      ? '<b>🟧 第三层（最上层）↕</b>只能上下升降；铁链吊在<b>顶层横梁</b>上。它比下面多 1 个车位哦。'
+      : '<b>🟧 第二层（最上层）↕</b>只能上下升降；铁链吊在<b>顶层横梁</b>上。它比下面多 1 个车位哦。';
+    document.getElementById('footText').innerHTML = is3
+      ? '运动规则参考真实「升降横移类机械式停车设备」：顶层载车板只升降，中间层升降 + 横移，底层只横移；除顶层外每层预留一个空位做交换位，存取车时目标车位到空位之间的载车板依次横移一个车位，让出升降通道。这里的车板很"懒"：<b>横移、升降之后都不复位</b> —— 停好车就留在原地，下次停车挡路时才被迫让开。'
+      : '运动规则参考真实「升降横移类机械式停车设备」：顶层载车板只升降，底层只横移；除顶层外预留一个空位做交换位，存取车时目标车位到空位之间的载车板依次横移一个车位，让出升降通道。这里的车板很"懒"：<b>横移、升降之后都不复位</b> —— 停好车就留在原地，下次停车挡路时才被迫让开。';
+  }
+
+  function buildScene(n) {
+    state.N = n;
+    state.cols = n + 1;      // 顶层比下面多 1 个车位：下面留 1 个空位
+    // 层高表随层数变化：两层车库没有中间层（层间距 88px = 车高 56 + 净空）
+    DECK_Y = (state.layers === 3) ? { 1: 336, 2: 248, 3: 160 } : { 1: 336, 2: 248 };
+    slots = { 1: [], 2: [], 3: [] };
+    scene.innerHTML = '';
+    gapWrap = null;
+    updateTexts();
+
+    var W = MARGIN_L + state.cols * COL_W + MARGIN_R;
+    scene.style.width = W + 'px';
+    scene.style.height = SCENE_H + 'px';
+
+    drawStructure(W);
+
+    for (var level = 1; level <= state.layers; level++) {
+      for (var i = 0; i < state.cols; i++) slots[level][i] = null;
+    }
+    for (var layer = 1; layer <= state.layers; layer++) {
+      var count = (layer === state.layers) ? n + 1 : n;
+      for (var c = 0; c < count; c++) {
+        slots[layer][c] = makePlatform(layer, c);
+      }
+    }
+
+    drawGapSlots();
+    setCaption('👆 点<b>空车位</b>停车，点<b>小汽车</b>把它开走！（车板很"懒"：让路后停在原地，下次挡路才移动）');
+    fit();
+  }
+
+  function fit() {
+    var w = sceneWrap.clientWidth;
+    var sw = scene.offsetWidth || 1;
+    var s = Math.min(1.3, w / sw);
+    // 优先保证「场景 + 解说条」一屏可见：按剩余高度预算再压一档缩放
+    var budget = window.innerHeight - sceneWrap.offsetTop - 140;
+    if (budget > 220) s = Math.min(s, budget / SCENE_H);
+    s = Math.max(0.5, s);
+    var offsetX = Math.max(0, (w - sw * s) / 2);
+    scene.style.transform = 'translateX(' + offsetX + 'px) scale(' + s + ')';
+    sceneWrap.style.height = Math.round(SCENE_H * s) + 'px';
+  }
+
+  /* ================= 交互 ================= */
+  document.querySelectorAll('.n-btn').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      if (state.busy) { showToast('演示中，等它停好车再换哦～'); return; }
+      document.querySelectorAll('.n-btn').forEach(function (b) { b.classList.remove('active'); });
+      btn.classList.add('active');
+      buildScene(parseInt(btn.dataset.n, 10));
+    });
+  });
+
+  document.querySelectorAll('.layer-btn').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      if (state.busy) { showToast('演示中，等它停好车再换哦～'); return; }
+      document.querySelectorAll('.layer-btn').forEach(function (b) { b.classList.remove('active'); });
+      btn.classList.add('active');
+      state.layers = parseInt(btn.dataset.layers, 10);
+      buildScene(state.N);
+      showToast(state.layers === 3 ? '换成三层车库啦！🏗️' : '换成两层车库啦！🏗️');
+    });
+  });
+
+  document.getElementById('resetBtn').addEventListener('click', function () {
+    if (state.busy) { showToast('演示中，等它停好车再清空哦～'); return; }
+    buildScene(state.N);
+    showToast('车库清空啦，重新开始！🔄');
+  });
+
+  document.getElementById('randomBtn').addEventListener('click', function () {
+    if (state.busy) return;
+    var empties = [];
+    [1, 2, 3].forEach(function (layer) {
+      slots[layer].forEach(function (p) {
+        if (p && !p.car) empties.push(p);
+      });
+    });
+    if (!empties.length) {
+      showToast('车库已经停满啦！点「全部清空」再来一次 🅿️');
+      return;
+    }
+    park(empties[Math.floor(Math.random() * empties.length)]);
+  });
+
+  document.getElementById('randomOutBtn').addEventListener('click', function () {
+    if (state.busy) return;
+    var parked = [];
+    [1, 2, 3].forEach(function (layer) {
+      slots[layer].forEach(function (p) {
+        if (p && p.car) parked.push(p);
+      });
+    });
+    if (!parked.length) {
+      showToast('现在没有停着的车哦～ 先点空车位停几辆吧！🚗');
+      return;
+    }
+    driveOut(parked[Math.floor(Math.random() * parked.length)]);
+  });
+
+  window.addEventListener('resize', fit);
+  window.addEventListener('load', fit);
+
+  buildScene(3);
+})();
+</script>
+</body>
+</html>
